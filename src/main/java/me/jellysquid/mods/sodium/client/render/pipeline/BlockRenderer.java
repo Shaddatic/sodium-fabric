@@ -27,6 +27,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.BlockRenderView;
+import net.minecraft.world.World;
 
 import java.util.List;
 import java.util.Random;
@@ -128,6 +129,37 @@ public class BlockRenderer {
         }
 
         int vertexStart = vertices.getVertexCount();
+		
+		if (state.getLuminance() > 2)
+        {
+            switch (bakedQuad.getFace()) {
+                case UP: 
+                    light.br[0] = 1.0f;
+                    light.br[1] = 1.0f;
+                    light.br[2] = 1.0f;
+                    light.br[3] = 1.0f;
+                    break;
+                case DOWN:
+                    boolean b24 = MinecraftClient.getInstance().player.world.getRegistryKey() == World.NETHER;
+                    light.br[0] = b24 ? 0.9f : 0.87f;
+                    light.br[1] = b24 ? 0.9f : 0.87f;
+                    light.br[2] = b24 ? 0.9f : 0.87f;
+                    light.br[3] = b24 ? 0.9f : 0.87f;
+                    break;
+                case NORTH: case SOUTH:
+                    light.br[0] = 0.95f;
+                    light.br[1] = 0.95f;
+                    light.br[2] = 0.95f;
+                    light.br[3] = 0.95f;
+                    break;
+                default:
+                    light.br[0] = 0.9f;
+                    light.br[1] = 0.9f;
+                    light.br[2] = 0.9f;
+                    light.br[3] = 0.9f;
+                    break;
+            }
+        }
 
         for (int i = 0; i < 4; i++) {
             int j = orientation.getVertexIndex(i);
