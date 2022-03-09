@@ -37,6 +37,7 @@ import net.minecraft.world.BlockRenderView;
 import org.apache.commons.lang3.mutable.MutableFloat;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.jetbrains.annotations.Nullable;
+import net.minecraft.world.World;
 
 public class FluidRenderer {
     // TODO: allow this to be changed by vertex format
@@ -128,6 +129,8 @@ public class FluidRenderer {
         }
 
         boolean isWater = fluidState.isIn(FluidTags.WATER);
+		boolean isLuminous = world.getLuminance(pos) > 2;
+		float br;
 
         FluidRenderHandler handler = FluidRenderHandlerRegistryImpl.INSTANCE.get(fluidState.getFluid());
         ColorSampler<FluidState> colorizer = this.createColorProviderAdapter(handler);
@@ -253,7 +256,14 @@ public class FluidRenderer {
             this.setVertex(quad, 2, 1.0F, yOffset, 0.0f, maxU, minV);
             this.setVertex(quad, 3, 1.0F, yOffset, 1.0F, maxU, maxV);
 
-            this.calculateQuadColors(quad, world, pos, lighter, Direction.DOWN, 1.0F, colorizer, fluidState);
+			if (MinecraftClient.getInstance().player.world.getRegistryKey() == World.NETHER) {
+				br = isLuminous ? 0.9F : 0.6F;
+			}
+			else  {
+				br = isLuminous ? 0.87F : 0.5F;
+			}
+
+            this.calculateQuadColors(quad, world, pos, lighter, Direction.DOWN, br, colorizer, fluidState);
 
             int vertexStart = this.writeVertices(buffers, offset, quad);
 
@@ -331,24 +341,36 @@ public class FluidRenderer {
                 int adjY = posY + dir.getOffsetY();
                 int adjZ = posZ + dir.getOffsetZ();
 
-                Sprite sprite = sprites[1];
+                Sprite sprite;
+                float u1, u2, v1, v2, v3;
 
-                if (isWater) {
-                    BlockPos adjPos = this.scratchPos.set(adjX, adjY, adjZ);
-                    BlockState adjBlock = world.getBlockState(adjPos);
+                //if (isWater) {
 
-                    if (!adjBlock.isOpaque() && !adjBlock.isAir()) {
-                        // ice, glass, stained glass, tinted glass
-                        sprite = this.waterOverlaySprite;
+                //}
 
-                    }
+                BlockPos adjPos = this.scratchPos.set(adjX, adjY, adjZ);
+                BlockState adjBlock = world.getBlockState(adjPos);
+
+                if (!adjBlock.isAir() && adjBlock.isFullCube(world, pos)) // !adjBlock.isOpaque() && // ice, glass, stained glass, tinted glass
+                { 
+                    sprite = sprites[0];
+                    
+                    u1 = sprite.getFrameU(0.0D);
+                    u2 = sprite.getFrameU(16.0D);
+                    v1 = sprite.getFrameV((1.0F - c1) * 16.0F);
+                    v2 = sprite.getFrameV((1.0F - c2) * 16.0F);
+                    v3 = sprite.getFrameV(16.0D);
                 }
+                else
+                {
+                    sprite = sprites[1];
 
-                float u1 = sprite.getFrameU(0.0D);
-                float u2 = sprite.getFrameU(8.0D);
-                float v1 = sprite.getFrameV((1.0F - c1) * 16.0F * 0.5F);
-                float v2 = sprite.getFrameV((1.0F - c2) * 16.0F * 0.5F);
-                float v3 = sprite.getFrameV(8.0D);
+                    u1 = sprite.getFrameU(0.0D);
+                    u2 = sprite.getFrameU(8.0D);
+                    v1 = sprite.getFrameV((1.0F - c1) * 8.0F);
+                    v2 = sprite.getFrameV((1.0F - c2) * 8.0F);
+                    v3 = sprite.getFrameV(8.0D);
+                }
 
                 quad.setSprite(sprite);
 
@@ -357,7 +379,7 @@ public class FluidRenderer {
                 this.setVertex(quad, 2, x1, yOffset, z1, u1, v3);
                 this.setVertex(quad, 3, x1, c1, z1, u1, v1);
 
-                float br = dir.getAxis() == Direction.Axis.Z ? 0.8F : 0.6F;
+                br = isLuminous ? dir.getAxis() == Direction.Axis.Z ? 0.95F : 0.9F : dir.getAxis() == Direction.Axis.Z ? 0.8F : 0.6F;
 
                 ModelQuadFacing facing = ModelQuadFacing.fromDirection(dir);
 
